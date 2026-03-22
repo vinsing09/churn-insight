@@ -8,7 +8,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_FROM = "Churn Insight <digest@churninsight.io>"
+_FROM = "Churn Insight <onboarding@resend.dev>"
 
 
 def _priority_badge(score: float) -> str:

@@ -81,13 +81,26 @@ async def run_analysis(account_id: str, run_id: str, db: Session) -> None:
             t.last_updated_at = now
         db.commit()
 
+        all_responses_map = {r.id: r for r in classified_responses}
         themes_detected = 0
         for cluster_label, cluster_response_ids in cluster_map.items():
+            # Generate a descriptive name from sample texts in this cluster
+            sample_texts = [
+                all_responses_map[rid].text_stripped
+                for rid in cluster_response_ids[:8]
+                if rid in all_responses_map
+            ]
+            theme_name, theme_description = await svc_cluster.name_cluster(sample_texts)
+            # Fall back to a generic label only if Claude returned nothing
+            if not theme_name:
+                theme_name = f"Theme {cluster_label + 1}"
+
             _upsert_theme(
                 account_id=account_id,
-                cluster_label=cluster_label,
+                theme_name=theme_name,
+                theme_description=theme_description,
                 cluster_response_ids=cluster_response_ids,
-                all_responses={r.id: r for r in classified_responses},
+                all_responses=all_responses_map,
                 db=db,
                 now=now,
             )
@@ -106,18 +119,17 @@ async def run_analysis(account_id: str, run_id: str, db: Session) -> None:
 
 def _upsert_theme(
     account_id: str,
-    cluster_label: int,
+    theme_name: str,
+    theme_description: str,
     cluster_response_ids: list[str],
     all_responses: dict[str, Response],
     db: Session,
     now: datetime,
 ) -> None:
     """Create or update a Theme for one HDBSCAN cluster."""
-    # Use a stable deterministic name based on cluster label and account
-    # (real implementation would use Claude to name themes)
-    theme_name = f"Theme {cluster_label + 1}"
-
-    # Look for existing theme by name for this account
+    # Match on name so re-runs update the existing theme rather than duplicate it.
+    # On the very first run the name comes from Claude; subsequent runs re-name
+    # in place (description and stats are always refreshed).
     theme = db.scalars(
         select(Theme)
         .where(Theme.account_id == account_id)
@@ -129,7 +141,7 @@ def _upsert_theme(
             id=str(uuid.uuid4()),
             account_id=account_id,
             name=theme_name,
-            description=None,
+            description=theme_description or None,
             first_detected_at=now,
             last_updated_at=now,
             status="active",
@@ -137,6 +149,7 @@ def _upsert_theme(
         db.add(theme)
     else:
         theme.status = "active"
+        theme.description = theme_description or theme.description
         theme.last_updated_at = now
 
     # Recalculate aggregate stats from classifications
