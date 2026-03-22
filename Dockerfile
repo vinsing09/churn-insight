@@ -23,8 +23,8 @@ COPY . .
 # Create data directories (embeddings are ephemeral in Railway — use object storage in prod)
 RUN mkdir -p data/embeddings
 
+RUN chmod +x start.sh
+
 EXPOSE 8000
 
-# Run migrations then start the server.
-# $PORT is injected by Railway; fall back to 8000 for local docker run.
-CMD alembic upgrade head && python -u /app/startup_test.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+CMD ["./start.sh"]
