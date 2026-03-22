@@ -26,4 +26,4 @@ EXPOSE 8000
 
 # Run migrations then start the server.
 # $PORT is injected by Railway; fall back to 8000 for local docker run.
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD alembic upgrade head && python -c "import app.main; print('Import OK')" && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
