@@ -14,7 +14,9 @@ openai==1.28.0
 hdbscan==0.8.38.post1
 scikit-learn==1.4.2
 numpy==1.26.4
-spacy==3.7.5
+spacy==3.8.3
+sentence-transformers==3.4.1
+psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 cryptography==42.0.7
 reportlab==4.1.0
