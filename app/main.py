@@ -11,6 +11,8 @@ from app.core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs("data/embeddings", exist_ok=True)
+    from app.services.scheduler import start_scheduler
+    start_scheduler()
     yield
 
 

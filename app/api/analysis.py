@@ -10,6 +10,8 @@ from app.db.models import Account, AnalysisRun
 from app.db.session import get_db, SessionLocal
 from app.schemas import AnalysisRunOut
 from app.services.analysis import run_analysis
+from app.services.email import send_weekly_digest
+from app.services.scheduler import _build_stats
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -67,6 +69,30 @@ def list_runs(
         .where(AnalysisRun.account_id == account.id)
         .order_by(AnalysisRun.started_at.desc())
     ).all()
+
+
+@router.post("/trigger-digest")
+async def trigger_digest(
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Send the weekly digest email immediately for the current account.
+
+    Uses the most recent completed analysis run for stats.
+    Useful for testing without waiting for Monday's cron.
+    """
+    run = db.scalars(
+        select(AnalysisRun)
+        .where(AnalysisRun.account_id == account.id)
+        .where(AnalysisRun.status == "completed")
+        .order_by(AnalysisRun.started_at.desc())
+    ).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="No completed analysis run found — run /analysis/run first")
+
+    stats = _build_stats(account.id, run, db)
+    send_weekly_digest(to_email=account.email, account_id=account.id, stats=stats)
+    return {"status": "sent", "to": account.email}
 
 
 async def _run_in_background(account_id: str, run_id: str) -> None:
