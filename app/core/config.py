@@ -28,5 +28,7 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:3000"
 
+    ADMIN_SECRET: str = "change-me-in-production"
+
 
 settings = Settings()

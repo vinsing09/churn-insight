@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import account, analysis, auth, briefs, dashboard, integrations, themes
+from app.api.account import admin_router
 from app.core.config import settings
 
 
@@ -35,6 +36,7 @@ app.include_router(themes.router, prefix=PREFIX)
 app.include_router(briefs.router, prefix=PREFIX)
 app.include_router(dashboard.router, prefix=PREFIX)
 app.include_router(account.router, prefix=PREFIX)
+app.include_router(admin_router, prefix=PREFIX)
 
 
 @app.get("/")
