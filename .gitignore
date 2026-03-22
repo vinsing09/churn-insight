@@ -21,8 +21,8 @@ env/
 .env/
 
 # Data (embeddings and SQLite DB)
-data/*.db
-data/embeddings/*.npy
+data/
+
 
 # Pytest
 .pytest_cache/

@@ -1,20 +1,28 @@
-"""HDBSCAN clustering — placeholder.
+"""HDBSCAN clustering of response embeddings."""
+from collections import defaultdict
 
-Groups response embeddings into thematic clusters and maps
-each cluster to a Theme record in the database.
-"""
+import hdbscan
 import numpy as np
 
 
 def cluster_embeddings(embeddings: np.ndarray, min_cluster_size: int = 5) -> np.ndarray:
-    """Run HDBSCAN on embeddings and return cluster label array (-1 = noise)."""
-    raise NotImplementedError
+    """Run HDBSCAN and return integer cluster labels (-1 = noise/unclustered)."""
+    if len(embeddings) < min_cluster_size:
+        return np.full(len(embeddings), -1, dtype=int)
+
+    clusterer = hdbscan.HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        min_samples=2,
+        metric="euclidean",
+        cluster_selection_method="eom",
+    )
+    return clusterer.fit_predict(embeddings).astype(int)
 
 
-def labels_to_themes(
-    labels: np.ndarray,
-    response_ids: list[str],
-    account_id: str,
-) -> list[dict]:
-    """Convert cluster labels to theme dicts ready for DB insertion."""
-    raise NotImplementedError
+def labels_to_cluster_map(labels: np.ndarray, response_ids: list[str]) -> dict[int, list[str]]:
+    """Map cluster label → list of response_ids (excludes noise label -1)."""
+    clusters: dict[int, list[str]] = defaultdict(list)
+    for label, rid in zip(labels, response_ids):
+        if label != -1:
+            clusters[int(label)].append(rid)
+    return dict(clusters)
