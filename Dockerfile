@@ -23,7 +23,8 @@ COPY . .
 # Create data directories (embeddings are ephemeral in Railway — use object storage in prod)
 RUN mkdir -p data/embeddings
 
-RUN chmod +x start.sh
+# Generate start.sh directly to guarantee Unix line endings regardless of the host OS
+RUN printf '#!/bin/bash\necho "=== STARTING ===" >&2\nalembic upgrade head >&2 2>&1 || echo "Migration done" >&2\necho "=== STARTING UVICORN ===" >&2\nexec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level debug 2>&1\n' > /app/start.sh && chmod +x /app/start.sh
 
 EXPOSE 8000
 

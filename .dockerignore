@@ -12,3 +12,4 @@ data/embeddings/
 tests/
 scripts/
 *.md
+start.sh
