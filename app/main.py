@@ -1,5 +1,5 @@
 import os
-from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,16 +8,20 @@ from app.api import account, analysis, auth, briefs, dashboard, integrations, th
 from app.api.account import admin_router
 from app.core.config import settings
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    os.makedirs("data/embeddings", exist_ok=True)
-    from app.services.scheduler import start_scheduler
-    start_scheduler()
-    yield
+app = FastAPI(title="Churn Insight API", version="0.1.0")
 
 
-app = FastAPI(title="Churn Insight API", version="0.1.0", lifespan=lifespan)
+@app.on_event("startup")
+async def startup_event():
+    if os.getenv("SCHEDULER_ENABLED", "false").lower() == "true":
+        try:
+            from app.services.scheduler import start_scheduler
+            start_scheduler()
+            print("Scheduler started", flush=True)
+        except Exception as e:
+            print(f"Scheduler failed to start: {e}", flush=True)
+
+    Path("data/embeddings").mkdir(parents=True, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
