@@ -1,9 +1,12 @@
 """End-to-end analysis pipeline: classify → embed → cluster → themes."""
+import logging
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.db.models import AnalysisRun, Classification, Response, Theme, ThemeResponse
 from app.services import classify as svc_classify
@@ -94,6 +97,11 @@ async def run_analysis(account_id: str, run_id: str, db: Session) -> None:
             # Fall back to a generic label only if Claude returned nothing
             if not theme_name:
                 theme_name = f"Theme {cluster_label + 1}"
+                logger.warning(
+                    "run_analysis: using fallback name '%s' for cluster %d "
+                    "(name_cluster returned empty — check ANTHROPIC_API_KEY and logs above)",
+                    theme_name, cluster_label,
+                )
 
             _upsert_theme(
                 account_id=account_id,

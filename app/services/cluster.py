@@ -1,5 +1,6 @@
 """HDBSCAN clustering of response embeddings."""
 import json
+import logging
 from collections import defaultdict
 
 import anthropic
@@ -7,6 +8,8 @@ import hdbscan
 import numpy as np
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 _NAMING_MODEL = "claude-haiku-4-5-20251001"
 
@@ -50,8 +53,13 @@ async def name_cluster(sample_texts: list[str]) -> tuple[str, str]:
             if raw.startswith("json"):
                 raw = raw[4:]
         data = json.loads(raw)
-        return data["name"], data.get("description", "")
-    except Exception:
+        name = data.get("name") or data.get("theme_name") or ""
+        description = data.get("description") or data.get("theme_description") or ""
+        if not name:
+            logger.warning("name_cluster: Claude returned JSON with no 'name' field: %s", raw)
+        return name.strip(), description.strip()
+    except Exception as exc:
+        logger.warning("name_cluster: failed to get LLM theme name: %s", exc)
         return "", ""
 
 
